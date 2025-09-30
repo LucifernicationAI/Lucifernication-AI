@@ -1,5 +1,5 @@
 
-import { Injectable } from '@angular/core';
+import { Injectable, signal } from '@angular/core';
 import { GoogleGenAI } from '@google/genai';
 
 @Injectable({
@@ -7,17 +7,53 @@ import { GoogleGenAI } from '@google/genai';
 })
 export class GeminiService {
   private ai: GoogleGenAI | null = null;
+  private readonly apiKeyStorageKey = 'gemini-api-key';
+  isConfigured = signal<boolean>(false);
 
   constructor() {
-    // The API key must be provided as an environment variable `process.env.API_KEY`.
-    if (process.env.API_KEY) {
-      this.ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    this.initialize();
+  }
+
+  private initialize(): void {
+    let apiKey: string | null = null;
+    if (typeof localStorage !== 'undefined') {
+      apiKey = localStorage.getItem(this.apiKeyStorageKey);
     }
+
+    if (!apiKey && typeof process !== 'undefined' && process.env && process.env.API_KEY) {
+      apiKey = process.env.API_KEY;
+    }
+
+    if (apiKey) {
+      this.ai = new GoogleGenAI({ apiKey });
+      this.isConfigured.set(true);
+    } else {
+      this.isConfigured.set(false);
+    }
+  }
+
+  setApiKey(apiKey: string): void {
+    if (!apiKey.trim()) return;
+
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(this.apiKeyStorageKey, apiKey);
+    }
+    this.ai = new GoogleGenAI({ apiKey });
+    this.isConfigured.set(true);
+  }
+
+  clearApiKey(): void {
+    if (typeof localStorage !== 'undefined') {
+      localStorage.removeItem(this.apiKeyStorageKey);
+    }
+    this.ai = null;
+    // After clearing, re-initialize to check for a fallback process.env.API_KEY
+    this.initialize();
   }
 
   async reviewCode(code: string, language: string): Promise<string> {
     if (!this.ai) {
-      throw new Error('Gemini API key not configured. Please set the API_KEY environment variable.');
+      throw new Error('Gemini API key not configured. Please provide one in the application.');
     }
     if (!code.trim()) {
         return "Please provide some code to review.";
@@ -50,7 +86,7 @@ export class GeminiService {
       return response.text;
     } catch (error) {
       console.error('Error calling Gemini API:', error);
-      throw new Error('Failed to get review from Gemini API. Check the console for more details.');
+      throw new Error('Failed to get review from Gemini API. Your API key might be invalid. Check the console for more details.');
     }
   }
 }

@@ -1,82 +1,173 @@
-
 <main class="min-h-screen bg-gray-900 text-gray-200 font-sans p-4 sm:p-6 lg:p-8">
+  <!-- Global Loading Indicator -->
+  @if (isLoading()) {
+    <div class="fixed inset-0 bg-gray-900/70 backdrop-blur-sm flex flex-col items-center justify-center z-50">
+      <svg class="animate-spin h-10 w-10 text-purple-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+      </svg>
+      <p class="mt-4 text-lg text-gray-300">Processing your request...</p>
+    </div>
+  }
+
   <div class="max-w-7xl mx-auto">
     <!-- Header -->
-    <header class="text-center mb-8">
+    <header class="relative text-center mb-8">
       <h1 class="text-4xl sm:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600">
         AI Code Reviewer
       </h1>
       <p class="mt-2 text-lg text-gray-400">Get instant, expert feedback on your code with Gemini.</p>
+      
+      @if (isConfigured()) {
+        <button 
+          (click)="changeApiKey()"
+          class="absolute top-0 right-0 p-2 text-gray-500 rounded-full hover:bg-gray-700/50 hover:text-white transition-colors"
+          title="Change API Key">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+            <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
+          </svg>
+        </button>
+      }
     </header>
 
-    <!-- Main Content Grid -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    @if (isConfigured()) {
+      <!-- Main Content Grid -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
-      <!-- Input Panel -->
-      <div class="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-lg shadow-lg p-6 flex flex-col">
-        <div class="flex items-center justify-between mb-4">
-          <label for="language" class="font-semibold text-gray-300">Language</label>
-          <select
-            id="language"
-            [value]="language()"
-            (change)="onLanguageChange($event)"
-            class="bg-gray-700 border border-gray-600 text-white text-sm rounded-lg focus:ring-purple-500 focus:border-purple-500 block w-1/2 p-2.5">
-            @for(lang of supportedLanguages; track lang.value) {
-              <option [value]="lang.value">{{ lang.name }}</option>
+        <!-- Input Panel -->
+        <div class="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-lg shadow-lg p-6 flex flex-col">
+          <div class="flex items-center justify-between mb-4">
+            <label for="language" class="font-semibold text-gray-300">Language</label>
+            <select
+              id="language"
+              [value]="language()"
+              (change)="onLanguageChange($event)"
+              class="bg-gray-700 border border-gray-600 text-white text-sm rounded-lg focus:ring-purple-500 focus:border-purple-500 block w-1/2 p-2.5">
+              @for(lang of supportedLanguages; track lang.value) {
+                <option [value]="lang.value">{{ lang.name }}</option>
+              }
+            </select>
+          </div>
+          <div class="flex-grow relative">
+            <textarea
+              placeholder="Paste your code here..."
+              [value]="code()"
+              (input)="onCodeChange($event)"
+              class="h-full min-h-[400px] w-full p-4 bg-gray-900 border border-gray-700 rounded-md resize-none font-mono text-sm text-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-shadow"></textarea>
+          </div>
+          <div class="mt-4 space-y-3">
+            <button
+              (click)="reviewCode()"
+              [disabled]="isLoading() || !code().trim()"
+              class="w-full inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 focus:ring-offset-gray-800 transition-all disabled:bg-gray-600 disabled:cursor-not-allowed">
+              <span>Review Code</span>
+            </button>
+            <div class="grid grid-cols-3 gap-3">
+                <button
+                    (click)="saveSession()"
+                    class="w-full inline-flex items-center justify-center px-4 py-2 border border-gray-600 text-sm font-medium rounded-md shadow-sm text-gray-300 bg-gray-700 hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 focus:ring-offset-gray-800 transition-all">
+                    Save Session
+                </button>
+                <button
+                    (click)="loadSession()"
+                    [disabled]="!isSessionSaved()"
+                    class="w-full inline-flex items-center justify-center px-4 py-2 border border-gray-600 text-sm font-medium rounded-md shadow-sm text-gray-300 bg-gray-700 hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 focus:ring-offset-gray-800 transition-all disabled:bg-gray-800 disabled:text-gray-500 disabled:cursor-not-allowed">
+                    Load Session
+                </button>
+                <button
+                    (click)="clearSession()"
+                    [disabled]="!isSessionSaved()"
+                    class="w-full inline-flex items-center justify-center px-4 py-2 border border-red-700 text-sm font-medium rounded-md shadow-sm text-red-300 bg-red-800/20 hover:bg-red-700/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 focus:ring-offset-gray-800 transition-all disabled:bg-gray-800 disabled:text-gray-500 disabled:cursor-not-allowed">
+                    Clear Session
+                </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Output Panel -->
+        <div class="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-lg shadow-lg p-6 min-h-[400px] flex flex-col">
+          <div class="flex justify-between items-center mb-4">
+            <h2 class="text-2xl font-bold text-gray-200">Review Feedback</h2>
+            @if (reviewResult() && !isLoading()) {
+              <div class="flex items-center space-x-2">
+                <button
+                  (click)="copyFeedback()"
+                  [disabled]="copyStatus() === 'copied'"
+                  class="inline-flex items-center justify-center px-4 py-2 border border-gray-600 text-sm font-medium rounded-md shadow-sm text-gray-300 bg-gray-700 hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 focus:ring-offset-gray-800 transition-all disabled:bg-green-700 disabled:border-green-600 disabled:cursor-default">
+                  @if (copyStatus() === 'copied') {
+                    <svg class="w-5 h-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                    </svg>
+                    <span>Copied!</span>
+                  } @else {
+                    <svg class="w-5 h-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 8.25V6a2.25 2.25 0 0 0-2.25-2.25H6A2.25 2.25 0 0 0 3.75 6v8.25A2.25 2.25 0 0 0 6 16.5h2.25m8.25-8.25H18a2.25 2.25 0 0 1 2.25 2.25v8.25A2.25 2.25 0 0 1 18 21H9.75A2.25 2.25 0 0 1 7.5 18.75V16.5m8.25-8.25h-6.75a.75.75 0 0 0-.75.75v6.75c0 .414.336.75.75.75h6.75a.75.75 0 0 0 .75-.75v-6.75a.75.75 0 0 0-.75-.75Z" />
+                    </svg>
+                    <span>Copy</span>
+                  }
+                </button>
+                <button
+                  (click)="exportFeedback()"
+                  class="inline-flex items-center justify-center px-4 py-2 border border-gray-600 text-sm font-medium rounded-md shadow-sm text-gray-300 bg-gray-700 hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 focus:ring-offset-gray-800 transition-all">
+                  <svg class="w-5 h-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                  </svg>
+                  <span>Export</span>
+                </button>
+              </div>
             }
-          </select>
-        </div>
-        <div class="flex-grow relative">
-          <textarea
-            placeholder="Paste your code here..."
-            [value]="code()"
-            (input)="onCodeChange($event)"
-            class="h-full min-h-[400px] w-full p-4 bg-gray-900 border border-gray-700 rounded-md resize-none font-mono text-sm text-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-shadow"></textarea>
-        </div>
-        <button
-          (click)="reviewCode()"
-          [disabled]="isLoading() || !code().trim()"
-          class="mt-4 w-full inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 focus:ring-offset-gray-800 transition-all disabled:bg-gray-600 disabled:cursor-not-allowed">
-          @if (isLoading()) {
-            <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
-            <span>Analyzing...</span>
-          } @else {
-            <span>Review Code</span>
+          </div>
+          
+          @if (formattingStatus()) {
+            <div class="mb-3 -mt-2 text-sm text-gray-400 italic">{{ formattingStatus() }}</div>
           }
-        </button>
-      </div>
 
-      <!-- Output Panel -->
-      <div class="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-lg shadow-lg p-6 min-h-[400px] flex flex-col">
-        <h2 class="text-2xl font-bold mb-4 text-gray-200">Review Feedback</h2>
-        <div class="flex-grow w-full bg-gray-900 border border-gray-700 rounded-md p-4 overflow-y-auto">
-          @if (isLoading()) {
-            <div class="flex flex-col items-center justify-center h-full text-gray-400">
-               <svg class="animate-spin h-8 w-8 text-purple-400 mb-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-              <p>Gemini is thinking...</p>
-            </div>
-          } @else if (error()) {
-            <div class="p-4 bg-red-900/50 text-red-300 border border-red-700 rounded-md">
-              <h3 class="font-bold">An Error Occurred</h3>
-              <p class="mt-1">{{ error() }}</p>
-            </div>
-          } @else if (reviewResult()) {
-            <article class="prose prose-invert max-w-none">
-              <pre class="whitespace-pre-wrap font-sans text-gray-300 bg-transparent p-0 border-0">{{ reviewResult() }}</pre>
-            </article>
-          } @else {
-            <div class="flex items-center justify-center h-full text-gray-500">
-              <p>Your code review feedback will appear here.</p>
-            </div>
-          }
+          <div class="flex-grow w-full bg-gray-900 border border-gray-700 rounded-md p-4 overflow-y-auto">
+            @if (error()) {
+              <div class="p-4 bg-red-900/50 text-red-300 border border-red-700 rounded-md">
+                <h3 class="font-bold">An Error Occurred</h3>
+                <p class="mt-1">{{ error() }}</p>
+              </div>
+            } @else if (reviewResult()) {
+              <article class="prose prose-invert max-w-none">
+                <pre class="whitespace-pre-wrap font-sans text-gray-300 bg-transparent p-0 border-0">{{ reviewResult() }}</pre>
+              </article>
+            } @else {
+              <div class="flex items-center justify-center h-full text-gray-500">
+                <p>Your code review feedback will appear here.</p>
+              </div>
+            }
+          </div>
         </div>
       </div>
-    </div>
+    } @else {
+      <!-- API Key Setup Panel -->
+      <div class="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-lg shadow-lg p-8 max-w-2xl mx-auto text-center">
+        <svg xmlns="http://www.w3.org/2000/svg" class="mx-auto h-12 w-12 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+        </svg>
+        <h2 class="text-2xl font-bold text-gray-200 mt-4 mb-3">Set Your Gemini API Key</h2>
+        <p class="text-gray-400 mb-6">
+          To begin, please enter your Google Gemini API key. Your key is stored only in your browser's local storage.
+        </p>
+        <div class="flex flex-col sm:flex-row gap-3" (keyup.enter)="saveApiKey()">
+          <input 
+            type="password" 
+            placeholder="Enter your Gemini API Key" 
+            [value]="apiKeyInput()" 
+            (input)="onApiKeyChange($event)"
+            class="flex-grow w-full px-4 py-3 bg-gray-900 border border-gray-700 rounded-md text-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-shadow" />
+          <button 
+            (click)="saveApiKey()"
+            [disabled]="!apiKeyInput().trim()"
+            class="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 focus:ring-offset-gray-800 transition-all disabled:bg-gray-600 disabled:cursor-not-allowed">
+            Save and Continue
+          </button>
+        </div>
+        <p class="text-xs text-gray-500 mt-4">
+          You can get a free API key from <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-purple-400 hover:underline">Google AI Studio</a>.
+        </p>
+      </div>
+    }
   </div>
 </main>

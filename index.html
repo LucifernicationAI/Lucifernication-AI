@@ -1,11 +1,10 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AI Code Reviewer</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
   <script>
     tailwind.config = {
       theme: {
@@ -34,9 +33,6 @@
           }),
         },
       },
-      plugins: [
-        require('@tailwindcss/typography'),
-      ],
     }
   </script>
 <script type="importmap">
@@ -51,7 +47,14 @@
     "@angular/platform-browser": "https://next.esm.sh/@angular/platform-browser@^20.3.2?external=rxjs",
     "@angular/compiler": "https://next.esm.sh/@angular/compiler@^20.3.2?external=rxjs",
     "@angular/core": "https://next.esm.sh/@angular/core@^20.3.2?external=rxjs",
-    "@google/genai": "https://next.esm.sh/@google/genai@^1.21.0?external=rxjs"
+    "@google/genai": "https://next.esm.sh/@google/genai@^1.21.0?external=rxjs",
+    "prettier": "https://esm.sh/prettier@3.3.2/standalone",
+    "prettier/plugins/babel": "https://esm.sh/prettier@3.3.2/plugins/babel",
+    "prettier/plugins/estree": "https://esm.sh/prettier@3.3.2/plugins/estree",
+    "prettier/plugins/typescript": "https://esm.sh/prettier@3.3.2/plugins/typescript",
+    "prettier/plugins/html": "https://esm.sh/prettier@3.3.2/plugins/html",
+    "prettier/plugins/postcss": "https://esm.sh/prettier@3.3.2/plugins/postcss",
+    "prettier-plugin-sql": "https://esm.sh/prettier-plugin-sql@1.1.2"
   }
 }
 </script>
